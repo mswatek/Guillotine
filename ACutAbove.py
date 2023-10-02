@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 import pandas as pd
 import json
-import cmake
 import functools as ft
 from time import strftime, localtime
 from datetime import datetime
