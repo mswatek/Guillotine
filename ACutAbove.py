@@ -17,16 +17,7 @@ from sleeper.model import Player, PlayerTrend
 from sleeper.api import LeagueAPIClient
 from sleeper.api import UserAPIClient
 from sleeper.enum import Sport
-from sleeper.model import (
-    League,
-    Roster,
-    User,
-    Matchup,
-    PlayoffMatchup,
-    Transaction,
-    TradedPick,
-    SportState,
-)
+from sleeper.model import (League,Roster,User,Matchup,PlayoffMatchup,Transaction,TradedPick,SportState)
 
 
 ####### setting some stuff up
