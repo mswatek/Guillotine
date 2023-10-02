@@ -7,7 +7,7 @@ from time import strftime, localtime
 from datetime import datetime
 import numpy as np
 import altair as alt
-import IPython
+#import IPython
 import plotly.express as px
 from pandas import json_normalize
 import seaborn as sns
