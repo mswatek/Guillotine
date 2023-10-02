@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import json
-import functools as ft
+from functools import reduce
 from time import strftime, localtime
 from datetime import datetime
 import numpy as np
@@ -272,7 +272,6 @@ week_budget_chart = px.bar(week_budget_df, x="Week", y="RemainingBudget",text_au
 
 ############# adds
 
-
 adds_df = added_df.groupby(['Manager','Name','Position','Team','type','status','adds','week','waiver_bid','notes'])['leg'].count().reset_index(name="Count")
 
 manager_player_success = adds_df.query("status == 'Complete'").groupby(['Manager','Name','Position','Team','type','week'])['waiver_bid'].max().reset_index(name="Winning Bid")
@@ -282,7 +281,7 @@ manager_player_roster = adds_df.groupby(['Manager','Name','Position','Team','typ
 
 adds_dataframes = [manager_player_success,manager_player_fail, manager_player_fail_max,manager_player_roster]
 
-adds_df_combined = ft.reduce(lambda left, right: pd.merge(left, right,on=['Manager', 'Name','Position','Team','type','week'],how='outer'), adds_dataframes)
+adds_df_combined = reduce(lambda df1,df2: pd.merge(df1,df2,on=['Manager', 'Name','Position','Team','type','week']), adds_dataframes)
 adds_df_combined['Losing Bids'] = np.where((adds_df_combined['Winning Bid'] > 0), [None], adds_df_combined['Losing Bids'])
 adds_df_combined['Max Losing Bid'] = np.where((adds_df_combined['Winning Bid'] > 0), [None], adds_df_combined['Max Losing Bid'])
 
@@ -521,4 +520,3 @@ with tab5:
    st.dataframe(transactions_df.style, hide_index=True)
    st.dataframe(adds_df.style, hide_index=True)
    st.dataframe(adds_df_combined.style, hide_index=True)
-
