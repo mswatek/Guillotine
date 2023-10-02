@@ -1,0 +1,13 @@
+streamlit
+requests
+pandas
+json
+functools
+time
+datetime
+numpy
+altair
+IPython
+plotly.express
+seaborn
+sleeper
