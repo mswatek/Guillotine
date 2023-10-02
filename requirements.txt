@@ -1,6 +1,7 @@
 streamlit
 requests
 pandas
+Cmake
 functools
 datetime
 numpy
