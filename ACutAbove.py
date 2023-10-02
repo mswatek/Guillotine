@@ -11,14 +11,9 @@ import IPython
 import plotly.express as px
 from pandas import json_normalize
 import seaborn as sns
-from sleeper.api import PlayerAPIClient
-from sleeper.enum import Sport, TrendType
-from sleeper.model import Player, PlayerTrend
-from sleeper.api import LeagueAPIClient
-from sleeper.api import UserAPIClient
-from sleeper.enum import Sport
-from sleeper.model import (League,Roster,User,Matchup,PlayoffMatchup,Transaction,TradedPick,SportState)
-
+from sleeper.api import PlayerAPIClient, LeagueAPIClient, UserAPIClient
+from sleeper.enum import Sport, TrendType, Sport
+from sleeper.model import Player, PlayerTrend, League,Roster,User,Matchup,PlayoffMatchup,Transaction,TradedPick,SportState
 
 ####### setting some stuff up
 
