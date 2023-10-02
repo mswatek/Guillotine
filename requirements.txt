@@ -8,6 +8,3 @@ IPython
 plotly.express
 seaborn
 sleeper
-sleeper.api
-sleeper.enum
-sleeper.model
