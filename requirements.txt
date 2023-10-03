@@ -8,7 +8,6 @@ IPython
 plotly.express
 seaborn
 sleeper
-sleeper.api.SleeperAPIClient
 sleeper.api.PlayerAPIClient
 sleeper.api.LeagueAPIClient
 sleeper.api.UserAPIClient
