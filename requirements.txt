@@ -7,6 +7,4 @@ altair
 IPython
 plotly.express
 seaborn
-sleeper.api
-sleeper.model
-sleeper.enum
+sleeper
