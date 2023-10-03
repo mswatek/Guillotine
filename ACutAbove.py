@@ -27,24 +27,24 @@ now = datetime.now()
 now = now.strftime('%Y-%m-%d')
 
 
-if  now > '2024-01-01': currentweek='18'
-elif now > '2023-12-25': currentweek='17'
-elif now > '2023-12-18': currentweek='16'
-elif now > '2023-12-11': currentweek='15'
-elif now > '2023-12-04': currentweek='14'
-elif now > '2023-11-27': currentweek='13'
-elif now > '2023-11-20': currentweek='12'
-elif now > '2023-11-13': currentweek='11'
-elif now > '2023-11-06': currentweek='10'
-elif now > '2023-10-30': currentweek='9'
-elif now > '2023-10-23': currentweek='8'
-elif now > '2023-10-16': currentweek='7'
-elif now > '2023-10-09': currentweek='6'
-elif now > '2023-10-02': currentweek='5'
+if  now > '2024-01-01': currentweek=18
+elif now > '2023-12-25': currentweek=17
+elif now > '2023-12-18': currentweek=16
+elif now > '2023-12-11': currentweek=15
+elif now > '2023-12-04': currentweek=14
+elif now > '2023-11-27': currentweek=13
+elif now > '2023-11-20': currentweek=12
+elif now > '2023-11-13': currentweek=11
+elif now > '2023-11-06': currentweek=10
+elif now > '2023-10-30': currentweek=9
+elif now > '2023-10-23': currentweek=8
+elif now > '2023-10-16': currentweek=7
+elif now > '2023-10-09': currentweek=6
+elif now > '2023-10-02': currentweek=5
 elif now > '2023-09-25': currentweek=4
-elif now > '2023-09-18': currentweek='3'
-elif now > '2023-09-11': currentweek='2'
-else: currentweek='1'
+elif now > '2023-09-18': currentweek=3
+elif now > '2023-09-11': currentweek=2
+else: currentweek=1
 
 
 st.markdown("""
@@ -120,7 +120,7 @@ player_df['Team'] = player_df['Team'].astype('string').str.replace('NFLTeam.', '
 ############################################# matchups
 
 all_matchups1=pd.DataFrame()
-for i in range(1,currentweek+1):
+for i in range(1,currentweek+1): #gotta automate!
     data = league.get_matchups(i)
     data1 = pd.DataFrame(data)
     data1['Week'] = i
