@@ -419,7 +419,7 @@ with tab1:
    st.header("Overall")
    st.write("We're into Week {theweek} and {teamcount} teams are still alive. The remaining overall budget has gone from 18K to {thebudget}."\
          .format(theweek=currentweek,teamcount=alive_text,thebudget=budget_left_text))
-   st.plotly_chart(week_budget_chart, theme=None) ##reformat labels
+   st.plotly_chart(week_budget_chart, theme=None,use_container_width=True) ##reformat labels
    st.write("Here's how things have shaken out so far, with green being the better weeks and red the worst.")
    st.write("We thank {losers} for joining the league and letting us take their best players."\
          .format(losers=lost_teams_text))
@@ -436,9 +436,9 @@ with tab1:
              .format(mostpoints=most_points_text,rolling=most_rpoints_text))
    line = st.radio("Choose Metric:", ['Points','3-Week Rolling Avg','Rolling Rank','Cumulative Points'])
    weekly_scoring_chart = px.line(all_matchups, x="Week", y=line, color="Manager",markers=True).update_layout(title="Manager "+line+" by Week")
-   st.plotly_chart(weekly_scoring_chart, theme=None)
+   st.plotly_chart(weekly_scoring_chart, theme=None,use_container_width=True)
    st.write("As the season has progressed, every team has steadily gotten better. The boxplots below show how the scores have been distributed each week. The average goes up, but so does the lowest score.")
-   st.plotly_chart(weekly_dist, theme=None)
+   st.plotly_chart(weekly_dist, theme=None,use_container_width=True)
 
 with tab2:
    st.header("Waivers")
