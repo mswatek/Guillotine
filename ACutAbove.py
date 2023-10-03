@@ -232,14 +232,14 @@ added_df['Name'] = added_df['first_name'] + ' ' + added_df['last_name']
 
 transactions_df = added_df[['week','Manager','Name','Position','Team','type','status','waiver_bid','notes']].query("status == 'complete'")
 
-week_manager_df = transactions_df.query("type == 'waiver'").groupby(['week','Manager']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
+week_manager_df = transactions_df.query("type == 'waiver' & week != '1'").groupby(['week','Manager']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
 week_manager_df = pd.merge(all_matchups, week_manager_df,left_on=['Week','Manager'], right_on=['week','Manager'],how='left')
 week_manager_df['MoneySpent'] = np.where((week_manager_df['MoneySpent'].isnull()), 0, week_manager_df['MoneySpent'])
 week_manager_df['Cumulative Spend'] = week_manager_df.groupby(['Manager'])['MoneySpent'].cumsum()
 week_manager_df['Remaining Budget'] = np.where((week_manager_df['Status']=='Out'), 0, (1000-week_manager_df['Cumulative Spend']))
 
 manager_position_df = transactions_df.query("type == 'waiver'").groupby(['Position','Manager']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
-week_position_df = transactions_df.query("type == 'waiver'").groupby(['week','Position']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
+week_position_df = transactions_df.query("type == 'waiver' &week != '1'").groupby(['week','Position']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
 week_budget_df = week_manager_df.groupby(['Week']).agg(RemainingBudget=('Remaining Budget', 'sum')).reset_index()
 
 
