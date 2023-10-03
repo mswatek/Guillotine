@@ -8,14 +8,3 @@ IPython
 plotly.express
 seaborn
 sleeper
-sleeper.api.PlayerAPIClient
-sleeper.api.LeagueAPIClient
-sleeper.api.UserAPIClient
-sleeper.enum.Sport
-sleeper.enum.TrendType
-sleeper.model.Player
-sleeper.model.League
-sleeper.model.Matchup
-sleeper.model.Roster
-sleeper.model.Transaction
-sleeper.model.User
