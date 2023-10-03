@@ -435,7 +435,7 @@ with tab1:
     st.write("Below are charts showing points by week, rolling average, and cumulative. {mostpoints} has scored the most points so far, while {rolling} has the best 3-week rolling average."\
              .format(mostpoints=most_points_text,rolling=most_rpoints_text))
    line = st.radio("Choose Metric:", ['Points','3-Week Rolling Avg','Rolling Rank','Cumulative Points'])
-   weekly_scoring_chart = px.line(all_matchups, x="Week", y=line, color="Manager",markers=True).update_layout(title="Manager "+line+" by Week")
+   weekly_scoring_chart = px.line(all_matchups, x="Week", y=line, color="Manager",markers=True).update_layout(title="Manager "+line+" by Week",legend=dict(orientation="h"))
    st.plotly_chart(weekly_scoring_chart, theme=None,use_container_width=True)
    st.write("As the season has progressed, every team has steadily gotten better. The boxplots below show how the scores have been distributed each week. The average goes up, but so does the lowest score.")
    st.plotly_chart(weekly_dist, theme=None,use_container_width=True)
