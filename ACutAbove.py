@@ -120,7 +120,7 @@ player_df['Team'] = player_df['Team'].astype('string').str.replace('NFLTeam.', '
 ############################################# matchups
 
 all_matchups1=pd.DataFrame()
-for i in range(1,currentweek+1): #gotta automate!
+for i in range(1,currentweek): #gotta automate!
     data = league.get_matchups(i)
     data1 = pd.DataFrame(data)
     data1['Week'] = i
@@ -173,7 +173,7 @@ def color_survived(val): # option 2
 
 
 all_trans=pd.DataFrame()
-for i in range(1,currentweek+1): #gotta automate this
+for i in range(1,currentweek): #gotta automate this
     data = league.get_transactions(i)
     data1 = pd.DataFrame(data)
     frames = [all_trans,data1]
