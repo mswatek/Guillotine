@@ -11,7 +11,7 @@ import IPython
 import plotly.express as px
 from pandas import json_normalize
 import seaborn as sns
-from sleeper.api.PlayerAPIClient import PlayerAPIClient
+#from sleeper.api.PlayerAPIClient import PlayerAPIClient
 from sleeper.api.LeagueAPIClient import LeagueAPIClient
 from sleeper.api.UserAPIClient import UserAPIClient
 from sleeper.enum import Sport, TrendType
