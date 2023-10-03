@@ -445,7 +445,7 @@ with tab2:
    st.write("It's great to be leading the way in remaining budget, as {budgetleader} currently is,"\
          " but that also means other teams have already bolstered their roster. It's a risky game to play."\
          .format(budgetleader=most_budget_text))
-   st.plotly_chart(week_manager_budget, theme=None)
+   st.plotly_chart(week_manager_budget, theme=None,use_container_width=True)
    st.write("Let's take a closer look at how waivers have gone this season. You can use the radio button to view money spent or number of winning bids.")
    bar = st.radio("Choose Metric:", ['MoneySpent','WinningBids','MaxPlayer'])
    st.write("The manager spend chart shows when and how much each manager has spent on shiny new toys.")
@@ -453,13 +453,13 @@ with tab2:
    week_position_chart = px.bar(week_position_df, x="week", y=bar, color="Position").update_layout(title="Position "+bar+" by Week")
    manager_position_chart = px.bar(manager_position_df, x="Manager", y=bar, color="Position").update_layout(title="Manager "+bar+" by Position")
    position_overall_chart = px.bar(position_overall_df, x="Position", y=bar,text_auto='.2s').update_layout(title=bar+" by Position")
-   st.plotly_chart(week_manager_chart, theme=None)
+   st.plotly_chart(week_manager_chart, theme=None,use_container_width=True)
    st.write("The {position} position has had the most money thrown its way, with {money} spent on {bids} waiver claims."\
          .format(position=max_position_text,money=position_spent_text,bids=position_bids_text))
-   st.plotly_chart(position_overall_chart, theme=None)
+   st.plotly_chart(position_overall_chart, theme=None,use_container_width=True)
    st.write("The position by manager chart shows how each manager has allocated their budget. The position by week chart follows closely to big names being dropped, especially at the quarterback and tight end positions.")
-   st.plotly_chart(manager_position_chart, theme=None)
-   st.plotly_chart(week_position_chart, theme=None)
+   st.plotly_chart(manager_position_chart, theme=None,use_container_width=True)
+   st.plotly_chart(week_position_chart, theme=None,use_container_width=True)
    
    
 with tab3:
@@ -480,16 +480,16 @@ with tab3:
 
    st.dataframe(released_summary.style, hide_index=True) ##filter for more than one release eventually...for now it's ok to have all
    st.write("The tree chart below shows the top acquisitions by position.") #Call out the top players for each, or maybe add a table below.
-   st.plotly_chart(player_tree) 
+   st.plotly_chart(player_tree,use_container_width=True) 
    st.dataframe(adds_player.style, hide_index=True) ## sort options: by difference to find closest and furthest...do callouts (wides and narrowest bid gaps)
    st.dataframe(adds_player_summary.style,hide_index=True)
-   st.plotly_chart(waiver_scatter)
+   st.plotly_chart(waiver_scatter,use_container_width=True)
 
 with tab4:
    st.header("Managers")
    bar = st.radio("Choose Metric:", ['AvgWinGap','MedianWinGap','MaxWinGap','MinWinGap']) ##where does this go?
    test2_chart = px.bar(bids_winning, x="Winning Manager", y=bar,text_auto='.2s').update_layout(title=bar+" by Manager",barmode='stack', xaxis={'categoryorder':'total descending'})
-   st.plotly_chart(test2_chart, theme=None)   
+   st.plotly_chart(test2_chart, theme=None,use_container_width=True)   
 
 with tab5:
    st.header("TABLES!")
