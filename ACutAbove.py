@@ -21,7 +21,7 @@ st.title(":blue[A Cut Above]")
 
 leagueid = "992211821861576704"
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(["Overall", "Waivers","Players", "Managers", "TABLES!"])
+tab1, tab2, tab3, tab4 = st.tabs(["Overall", "Waivers","Players", "Managers"])
 
 now = datetime.now()
 now = now.strftime('%Y-%m-%d')
@@ -45,30 +45,6 @@ elif now > '2023-09-25': currentweek=4
 elif now > '2023-09-18': currentweek=3
 elif now > '2023-09-11': currentweek=2
 else: currentweek=1
-
-
-st.markdown("""
-<style>
-
-	.stTabs [data-baseweb="tab-list"] {
-		gap: 2px;
-    }
-
-	.stTabs [data-baseweb="tab"] {
-		height: 50px;
-        white-space: pre-wrap;
-		background-color: #F0F2F6;
-		border-radius: 4px 4px 0px 0px;
-		gap: 1px;
-		padding-top: 10px;
-		padding-bottom: 10px;
-    }
-
-	.stTabs [aria-selected="true"] {
-  		background-color: #FFFFFF;
-	}
-
-</style>""", unsafe_allow_html=True)
 
 
 leagueid = "992211821861576704"
@@ -283,12 +259,11 @@ adds_player = adds_player[adds_player['WinningBid'].notna()]
 adds_player = adds_player.sort_values(by='WinningBid',ascending=False)
 adds_player['Difference'] = adds_player['WinningBid'] - adds_player['LosingMax']
 
-
 ##bring in manager for top and second-highest bid
 adds_manager = adds_df.query("notes !='Unfortunately, your roster will have too many players after this transaction.'")[['Name','Manager','week','waiver_bid']]
 
-adds_player = pd.merge(adds_player, adds_manager, left_on=['week','Name','WinningBid'], right_on=['week','Name','waiver_bid'],how='left').drop_duplicates().reset_index()
-adds_player = pd.merge(adds_player, adds_manager, left_on=['week','Name','LosingMax'], right_on=['week','Name','waiver_bid'],how='left').drop_duplicates().reset_index()
+adds_player = pd.merge(adds_player, adds_manager, left_on=['week','Name','WinningBid'], right_on=['week','Name','waiver_bid'],how='left').drop_duplicates().reset_index(drop=True)
+adds_player = pd.merge(adds_player, adds_manager, left_on=['week','Name','LosingMax'], right_on=['week','Name','waiver_bid'],how='left').drop_duplicates().reset_index(drop=True)
 adds_player['check_dupes'] = adds_player.duplicated(subset=['week','Name','Manager_x','waiver_bid_x'], keep=False).astype(int).astype(float)
 
 ##dedupe for bids where multiple people had second highest
@@ -306,13 +281,20 @@ adds_player = adds_player.drop_duplicates(subset=['week','Name','Manager_x','wai
 adds_player = adds_player.drop(['waiver_bid_x', 'waiver_bid_y','check_dupes','CUM_CONCAT'], axis=1)
 adds_player.rename(columns={'Manager_x': 'Winning Manager','Manager_y':'Runner-Up Manager'},inplace=True)
 
+### gaps for winners and runners-up - maybe I should filter for managers still alive?
 bids_winning = adds_player.groupby(['Winning Manager']) \
-    .agg(AvgWinGap=('Difference', 'mean'),MedianWinGap=('Difference', 'median'),\
-         MaxWinGap=('Difference', 'max'),MinWinGap=('Difference', 'min')).reset_index()
+    .agg(AvgGap=('Difference', 'mean'),MedianGap=('Difference', 'median'),\
+         MaxGap=('Difference', 'max'),MinGap=('Difference', 'min')).reset_index()
 
 bids_runnerup = adds_player.groupby(['Runner-Up Manager']) \
     .agg(AvgGap=('Difference', 'mean'),MedianGap=('Difference', 'median'),\
          MaxGap=('Difference', 'max'),MinGap=('Difference', 'min')).reset_index()
+
+#bar = st.radio("Choose Metric:", ['AvgGap','MedianGap','MaxGap','MinGap']) ##where does this go?
+#wingap_chart = px.bar(bids_winning, x="Winning Manager", y=bar,text_auto='.2s').update_layout(title=bar+" by Manager, Winning Bids",barmode='stack', xaxis={'categoryorder':'total descending'})
+#st.plotly_chart(wingap_chart, theme=None,use_container_width=True)   
+#wingap_chart = px.bar(bids_runnerup, x="Runner-Up Manager", y=bar,text_auto='.2s').update_layout(title=bar+" by Manager, Runner-Up Bids",barmode='stack', xaxis={'categoryorder':'total descending'})
+#st.plotly_chart(wingap_chart, theme=None,use_container_width=True)  
 
 
 adds_player_summary = adds_player.groupby(['Name','Position','Team']) \
@@ -322,11 +304,12 @@ adds_player_summary = adds_player_summary.loc[adds_player_summary['Pickups']>1]
 adds_player_summary = adds_player_summary.sort_values(by = ['Pickups', 'AvgSpent'], ascending = [False, False], na_position = 'first')
 
 ##multi-adds chart
-adds_player['Counter'] = adds_player.groupby(['Name'])['Name'].transform("cumcount")
-adds_player['Counter'] = adds_player['Counter']+1
-adds_player['Pickups'] = adds_player.groupby(['Name'])['Name'].transform("count")
+adds_player_chart = adds_player.sort_values(by='week',ascending=True)
+adds_player_chart['Counter'] = adds_player_chart.groupby(['Name'])['Name'].transform("cumcount")
+adds_player_chart['Counter'] = adds_player_chart['Counter']+1
+adds_player_chart['Pickups'] = adds_player_chart.groupby(['Name'])['Name'].transform("count")
 
-adds_player_chart = adds_player.loc[adds_player['Pickups']>1]
+adds_player_chart = adds_player_chart.loc[adds_player_chart['Pickups']>1]
 
 
 waiver_scatter = px.scatter(adds_player, x="WinningBid", y="Difference",size="Bids", color="Bids",hover_data=["Name","Winning Manager","Runner-Up Manager"],title="Waiver Bids")\
@@ -343,7 +326,11 @@ eliminated_df = dropped_df.loc[dropped_df['type'] == 'commissioner']
 released_df = dropped_df.loc[(dropped_df['type'].isin(['waiver','free_agent'])) & (dropped_df['status'] =='complete')]
 
 eliminated_summary = eliminated_df.groupby(['Name','Position','Team'])['leg'].count().sort_values(ascending=False).reset_index(name='Times Eliminated')
-released_summary = released_df.groupby(['Name','Position','Team'])['leg'].count().sort_values(ascending=False).reset_index(name='Times Dropped')
+released_summary = released_df.groupby(['Name','Position','Team'])['leg'].count().sort_values(ascending=False).reset_index(name='Times Released')
+
+dropped_summary = pd.merge(eliminated_summary, released_summary, on=['Name','Position','Team'], how='outer')
+dropped_summary['Total'] = dropped_summary.fillna(0)['Times Eliminated']+dropped_summary.fillna(0)['Times Released']
+dropped_summary = dropped_summary.sort_values(by = ['Total'], ascending = [False])
 
 ########## manager adds table
 
@@ -385,7 +372,7 @@ cm_power = sns.light_palette("green", as_cmap=True)
 
 ################ add automated text here
 
-##tab1
+##overall tab
 budget_left_text = min(week_budget_df['RemainingBudget'])
 alive_text = 19-currentweek
 
@@ -398,11 +385,8 @@ most_points_text = all_matchups.loc[all_matchups['Cumulative Points'] == all_mat
 most_rpoints_text = all_matchups.loc[(all_matchups['Rolling Rank'] == all_matchups['Rolling Rank'].min()) & \
                                      (all_matchups['Week'] == all_matchups['Week'].max()),'Manager'].values[0]
 
-pr_top = power_rankings.loc[power_rankings['Power Ranking'] == power_rankings['Power Ranking'].max(), 'Manager'].values[0]
-pr_bottom = power_rankings.loc[power_rankings['Power Ranking'] == power_rankings['Power Ranking'].min(), 'Manager'].values[0]
 
-
-##tab2
+##waiver tab
 most_budget_text = week_manager_df.loc[(week_manager_df['Remaining Budget'] == week_manager_df['Remaining Budget'].max()) & \
                                        (week_manager_df['Week'] == week_manager_df['Week'].max()), 'Manager'].values[0]
 
@@ -410,52 +394,90 @@ max_position_text = position_overall_df.loc[position_overall_df['MoneySpent'] ==
 position_spent_text = position_overall_df.loc[position_overall_df['MoneySpent'] == position_overall_df['MoneySpent'].max(), 'MoneySpent'].values[0]
 position_bids_text = position_overall_df.loc[position_overall_df['MoneySpent'] == position_overall_df['MoneySpent'].max(), 'WinningBids'].values[0]
 
-##tab3
+##players tab
 eliminated_most_text = eliminated_summary.loc[eliminated_summary['Times Eliminated'] == eliminated_summary['Times Eliminated'].max(), 'Name'].values[0]
 eliminated_count_text = eliminated_summary.loc[eliminated_summary['Times Eliminated'] == eliminated_summary['Times Eliminated'].max(), 'Times Eliminated'].values[0]
 eliminated_tie_text = eliminated_summary.loc[eliminated_summary['Times Eliminated'] == eliminated_summary['Times Eliminated'].max(), 'Times Eliminated'].shape[0]
 
-released_most_text = released_summary.loc[released_summary['Times Dropped'] == released_summary['Times Dropped'].max(), 'Name'].values[0]
-released_count_text = released_summary.loc[released_summary['Times Dropped'] == released_summary['Times Dropped'].max(), 'Times Dropped'].values[0]
-released_tie_text = released_summary.loc[released_summary['Times Dropped'] == released_summary['Times Dropped'].max(), 'Times Dropped'].shape[0]
+released_most_text = released_summary.loc[released_summary['Times Released'] == released_summary['Times Released'].max(), 'Name'].values[0]
+released_count_text = released_summary.loc[released_summary['Times Released'] == released_summary['Times Released'].max(), 'Times Released'].values[0]
+released_tie_text = released_summary.loc[released_summary['Times Released'] == released_summary['Times Released'].max(), 'Times Released'].shape[0]
+
+dropped_tie_text = dropped_summary.loc[dropped_summary['Total'] == dropped_summary['Total'].max(), 'Total'].shape[0]
+dropped_count_text = dropped_summary.loc[dropped_summary['Total'] == dropped_summary['Total'].max(), 'Total'].values[0]
+dropped_most_text = dropped_summary.loc[dropped_summary['Total'] == dropped_summary['Total'].max(), 'Name'].values[0]
 
 
-##################testing delete later
+if eliminated_tie_text>1:
+    elim = "{count} players have found themselves on the last place team {number} times. Maybe they were the problem?"\
+         .format(count=eliminated_tie_text,number=eliminated_count_text)
+else:
+    elim = "{player} leads the way with {number} times being dropped from the last place team."\
+         .format(player=eliminated_most_text,number=eliminated_count_text)
 
+if released_tie_text>1:
+    rele = "{count} players have been released a total of {number} times. These players are obviously good enough to be rostered but don't stick on a roster too long."\
+         .format(count=released_tie_text,number=released_count_text)
+else:
+    rele = "{player} leads the way with {number} times being released."\
+         .format(player=released_most_text,number=released_count_text)
+    
+if dropped_tie_text>1:
+    drop = "{count} players have been dropped a total of {number} times."\
+         .format(count=dropped_tie_text,number=dropped_count_text)
+else:
+    drop = "{player} leads the way with {number} times being dropped. Will anyone else take a chance on him?"\
+         .format(player=dropped_most_text,number=dropped_count_text)
+    
 
+##manager tab
 
+pr_top = power_rankings.loc[power_rankings['Power Ranking'] == power_rankings['Power Ranking'].max(), 'Manager'].values[0]
+pr_bottom = power_rankings.loc[power_rankings['Power Ranking'] == power_rankings['Power Ranking'].min(), 'Manager'].values[0]
+
+bid_text = manager_overall_df.loc[manager_overall_df['WinningBids'] == manager_overall_df['WinningBids'].max(), 'Manager'].values[0]
+active_text = manager_overall_df.loc[manager_overall_df['Total Activity'] == manager_overall_df['Total Activity'].max(), 'Manager'].values[0]
+money_text = manager_overall_df.loc[manager_overall_df['MoneySpent'] == manager_overall_df['MoneySpent'].max(), 'Manager'].values[0]
+rate_text = manager_overall_df.loc[manager_overall_df['Success Rate'] == manager_overall_df['Success Rate'].max(), 'Manager'].values[0]
+rate_text2 = manager_overall_df.loc[manager_overall_df['Success Rate'] == manager_overall_df['Success Rate'].min(), 'Manager'].values[0]
 
 ##################notes
 
-#some players are slipping through the cracks on waiver summary charts
-# make a chart for multi-waiver players that compares their original price to subsequent prices; can also do this for number of bids"
+#some players are slipping through the cracks on waiver summary charts; quentin johnston in the multi-add chart
 # call out the most weekly wins, the most second places, the closest gaps between losing and surviging, the average and median gap ahead of last place, the most easy wins(at least x points ahead of last)")
-# Show a chart with average and median gap for winning and losing bids...is that even interesting?
-# show table of bids by manager - who has bid the most, who has won the most, lost the most, who has been most active (multiple bids for same player etc); who has laid the most money out, regardless of win/loss
+# Show a chart with average and median gap for winning and runner-up bids...the charts are made but not included currently
+# automate transactions date based on getting current date and using conditions set at the beginning
+# eliminated players that haven't gotten picked back up
+# table at top mapping manager to team name
+# might have to do conditional charts based on day of the week...test this out
 
 #####analyses that require some research
+#eventually I'd like to find a better table format to allow for filtering by manager etc
 #can I find a place for a Race Chart?
 #what about a ridgeplot?
 #can I do anything with possible points? Who actually should have lost each week?
 #it would be really cool to compare waiver price vs rest of season point totals for individual players - best values
 # can I do something where I look at money spent on guys that were eventually dropped? Not for eliminated teams, but waiver/free agent moves where you drop a guy you spent big on.")
 
+##### I took out tab5...maybe add back in the all_matchups table and any others that might be interesting to scroll through
+#with tab5:
+#st.header("TABLES!")
+#st.image('https://44.media.tumblr.com/9a7e3822dd2771c1e7965542d7168ab1/b0ea9792e807e275-a6/s540x810_f1/e2bc4d208650b5c6a1751433189a529489e44df2.gif')
+#st.write(all_matchups)
+
 
 ############################################################################################################
 
 with tab1:
-   st.header("Overall")
+   st.header("Remaining Budget")
    st.write("We're into Week {theweek} and {teamcount} teams are still alive. The remaining overall budget has gone from 18K to {thebudget}."\
          .format(theweek=currentweek,teamcount=alive_text,thebudget=budget_left_text))
    st.plotly_chart(week_budget_chart, theme=None,use_container_width=True) ##reformat labels
-   st.write("Here's how things have shaken out so far, with green being the better weeks and red the worst.")
-   st.write("We thank {losers} for joining the league and letting us take their best players."\
-         .format(losers=lost_teams_text))
+   st.divider()
+   st.header("Scoring")
+   st.write("Here's how things have shaken out so far, with each score shaded relative to all scores over the full season. A big thanks to {losers} "\
+            "for joining the league and letting us take their best players.".format(losers=lost_teams_text))
    st.dataframe(all_matchups_wide.style.background_gradient(cmap=cm,axis=None)) ##need to figure out how to fit this all in without scrolling
-   st.write("The best thing you can do in this league is score points. And when you can do so without blowing your budget, even better!",\
-    "Combining the remaining budget and 3-week scoring average, {top} is atop the power rankings while {bottom} as at the bottom."\
-        .format(top=pr_top,bottom=pr_bottom))
-   st.dataframe(power_rankings.style.background_gradient(cmap=cm_power),hide_index=True)
    if most_points_text == most_rpoints_text:
     st.write("Below are charts showing points by week, rolling average, and cumulative. {mostpoints} has scored the most points so far and currently has the highest 3-week rolling average!"\
              .format(mostpoints=most_points_text))
@@ -469,12 +491,14 @@ with tab1:
    st.plotly_chart(weekly_dist, theme=None,use_container_width=True)
 
 with tab2:
-   st.header("Waivers")
-   st.write("It's great to be leading the way in remaining budget, as {budgetleader} currently is,"\
-         " but that also means other teams have already bolstered their roster. It's a risky game to play."\
+   st.header("Budget")
+   st.write("It's great to be leading the way in remaining budget, as {budgetleader} currently is, but that also means other teams have "\
+        "already bolstered their roster. It's a risky game to play. The chart below shows each manager's proportion of the total budget throughout the season."\
          .format(budgetleader=most_budget_text))
    st.plotly_chart(week_manager_budget, theme=None,use_container_width=True)
-   st.write("Let's take a closer look at how waivers have gone this season. You can use the radio button to view money spent or number of winning bids.")
+   st.divider()
+   st.header("Waivers")
+   st.write("Let's take a closer look at how waivers have gone this season. You can use the radio button to view money spent, number of winning bids, or max bid for each of the charts below.")
    bar = st.radio("Choose Metric:", ['MoneySpent','WinningBids','MaxPlayer'])
    st.write("The manager spend chart shows when and how much each manager has spent on shiny new toys.")
    week_manager_chart = px.bar(week_manager_df, x="week", y=bar, color="Manager").update_layout(title="Manager "+bar+" by Week")
@@ -491,55 +515,32 @@ with tab2:
    
    
 with tab3:
-   st.header("Players")
-   st.write("The tree chart below shows the top acquisitions by position.") #Call out the top players for each, or maybe add a table below.
-   st.plotly_chart(player_tree,use_container_width=True) 
-   st.write("This table shows all waiver claims so far this season.") ##maybe add free agent adds eventually
+   st.header("Adds")
+   st.write("The tree chart below shows how much money has been spent on each player, grouped by position.") #Call out the top players for each, or maybe add a table below.
+   st.plotly_chart(player_tree,use_container_width=True) #not sure I can get around multi-add players...so it's really cumulative by player
+   st.write("This table shows all waiver claims so far this season, including the winning manager and runner-up manager for each.") ##maybe add free agent adds eventually
    st.dataframe(adds_player, hide_index=True) ## sort options: by difference to find closest and furthest...do callouts (wides and narrowest bid gaps)
-   st.write("The chart and table below should the players that got picked up from waivers multiple times.")
+   st.write("The chart and table below show the players that got picked up from waivers multiple times. How did their valuation change over the season?")
    line = st.radio("Choose Metric:", ['Bids','WinningBid'])
-   multi_waiver_chart = px.line(adds_player_chart, x="Counter", y=line,markers=True, color="Name").update_layout(title="Manager "+line+" by Week")
+   multi_waiver_chart = px.line(adds_player_chart, x="Counter", y=line,markers=True, color="Name",hover_data=['week']).update_layout(title="Manager "+line+" by Week")
    st.plotly_chart(multi_waiver_chart, theme=None,use_container_width=True)
    st.dataframe(adds_player_summary,hide_index=True) ##add total bids and number of free agent pickups
-   st.write("This scatterplot looks like how close the waiver contests were. Dots below the line are closely-contested waivers.")
+   st.write("This scatterplot looks at how close the waiver contests were. Dots below the line are closely-contested waivers, while ones above the line may have been overpays.")
    st.plotly_chart(waiver_scatter,use_container_width=True)
-   if eliminated_tie_text>1:
-    st.write("{count} players have found themselves on the last place team {number} times. Maybe they were the problem?"\
-         .format(count=eliminated_tie_text,number=eliminated_count_text))
-   else:
-    st.write("{player} leads the way with {number} times being dropped from the last place team. Yikes."\
-         .format(player=eliminated_most_text,number=eliminated_count_text))
-   st.dataframe(eliminated_summary.style, hide_index=True) ##filter for more than one elimination eventually...for now it's ok to have all
-   if released_tie_text>1:
-    st.write("{count} players have been dropped a total of {number} times. These players are obviously good enough to be rostered but don't stick on a roster too long."\
-         .format(count=released_tie_text,number=released_count_text))
-   else:
-    st.write("{player} leads the way with {number} times being dropped. Will anyone else take a chance on him?"\
-         .format(player=released_most_text,number=released_count_text))
-
-   st.dataframe(released_summary.style, hide_index=True) ##filter for more than one release eventually...for now it's ok to have all
+   st.divider()
+   st.header("Drops")
+   st.write(drop,elim,rele)
+   st.dataframe(dropped_summary, hide_index=True) ##eventually filter for players dropped or released multiple times
 
 with tab4:
-   st.header("Managers")
-   st.write("summary of manager stuff")
+   st.header("Power Rankings")
+   st.write("To advance in this league, your team merely needs to be 'good enough'. But some teams have been scoring a ton of points each week and still have a healthy budget. ",\
+    "Combining the remaining budget and 3-week scoring average, {top} is atop the power rankings while {bottom} as at the bottom."\
+        .format(top=pr_top,bottom=pr_bottom))
+   st.dataframe(power_rankings.style.background_gradient(cmap=cm_power),hide_index=True)
+   st.divider()
+   st.header("Waivers")
+   st.write("The table below summarizes how every manager has done on waivers. {bid} has won the most bids, {money} has spent the most money, "\
+    "{rate} has highest waiver success rate, and {rate2} has the lowest. {active} has been the most active on waivers, when including back-up bids that didn't get processed."\
+        .format(bid=bid_text,money=money_text,rate=rate_text,rate2=rate_text2,active=active_text))
    st.dataframe(manager_overall_df, hide_index=True) #the only other thing I could add here is highest week of money spending; also, its huge - maybe split into two tables
-   bar = st.radio("Choose Metric:", ['AvgWinGap','MedianWinGap','MaxWinGap','MinWinGap']) ##where does this go?
-   test2_chart = px.bar(bids_winning, x="Winning Manager", y=bar,text_auto='.2s').update_layout(title=bar+" by Manager",barmode='stack', xaxis={'categoryorder':'total descending'})
-   st.plotly_chart(test2_chart, theme=None,use_container_width=True)   
-
-with tab5:
-   st.header("TABLES!")
-   st.image('https://44.media.tumblr.com/9a7e3822dd2771c1e7965542d7168ab1/b0ea9792e807e275-a6/s540x810_f1/e2bc4d208650b5c6a1751433189a529489e44df2.gif')
-   st.write("Various tables/summaries that I'll organize later.")
-   st.dataframe(rosters.style, hide_index=True)
-   st.write(all_matchups)
-   st.write("waivers")
-   st.dataframe(week_overall_df, hide_index=True)
-   st.dataframe(position_overall_df, hide_index=True)
-   st.dataframe(week_manager_df, hide_index=True)
-   st.dataframe(week_position_df, hide_index=True)
-   st.dataframe(manager_position_df, hide_index=True)
-   st.write("adds")
-   st.dataframe(transactions_df, hide_index=True)
-   st.dataframe(adds_df, hide_index=True)
-   st.dataframe(adds_df_combined, hide_index=True)
