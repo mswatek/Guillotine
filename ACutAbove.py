@@ -237,6 +237,11 @@ week_manager_df = pd.merge(all_matchups, week_manager_df,left_on=['Week','Manage
 week_manager_df['MoneySpent'] = np.where((week_manager_df['MoneySpent'].isnull()), 0, week_manager_df['MoneySpent'])
 week_manager_df['Cumulative Spend'] = week_manager_df.groupby(['Manager'])['MoneySpent'].cumsum()
 week_manager_df['Remaining Budget'] = np.where((week_manager_df['Status']=='Out'), 0, (1000-week_manager_df['Cumulative Spend']))
+week_manager_df['Weeks_Alive'] = week_manager_df.groupby(['Manager'])['Points'].transform("count")
+week_manager_df['Total Budget'] = week_manager_df.groupby(['Week'])['Remaining Budget'].transform("sum")
+week_manager_df['Budget Percent'] = week_manager_df['Remaining Budget']/week_manager_df['Total Budget']
+week_manager_df = week_manager_df.sort_values(by =['Week','Remaining Budget','Weeks_Alive'],ascending=[False,True,True])
+
 
 manager_position_df = transactions_df.query("type == 'waiver'").groupby(['Position','Manager']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
 week_position_df = transactions_df.query("type == 'waiver' &week != '1'").groupby(['week','Position']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
@@ -245,11 +250,9 @@ week_budget_df = week_manager_df.groupby(['Week']).agg(RemainingBudget=('Remaini
 
 week_overall_df = transactions_df.query("type == 'waiver'").groupby(['week']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
 position_overall_df = transactions_df.query("type == 'waiver'").groupby(['Position']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
-manager_overall_df = transactions_df.query("type == 'waiver'").groupby(['Manager']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
-
 
 ###budget charts
-week_manager_budget = px.line(week_manager_df, x="Week", y="Remaining Budget", color='Manager',markers=True,title="Budget Remaining by Week")
+week_manager_budget = px.area(week_manager_df, x="Week", y="Budget Percent", color='Manager',title="Budget Percent by Week") ##changed from line chart
 week_budget_chart = px.bar(week_budget_df, x="Week", y="RemainingBudget",text_auto='.2s',title="Overall Budget Remaining by Week")
 
 ############# adds
@@ -259,7 +262,8 @@ adds_df = added_df.groupby(['Manager','Name','Position','Team','type','status','
 manager_player_success = adds_df.query("status == 'complete'").groupby(['Manager','Name','Position','Team','type','week'])['waiver_bid'].max().reset_index(name="Winning Bid")
 manager_player_fail = adds_df.query("notes == 'This player was claimed by another owner.'").groupby(['Manager','Name','Position','Team','type','week'])['waiver_bid'].count().reset_index(name="Losing Bids")
 manager_player_fail_max = adds_df.query("notes == 'This player was claimed by another owner.'").groupby(['Manager','Name','Position','Team','type','week'])['waiver_bid'].max().reset_index(name="Max Losing Bid")
-manager_player_roster = adds_df.groupby(['Manager','Name','Position','Team','type','week'])['notes'].apply(lambda x: (x=='Unfortunately, your roster will have too many players after this transaction.').sum()).reset_index(name='No Space Count')
+#manager_player_roster = adds_df.groupby(['Manager','Name','Position','Team','type','week'])['notes'].apply(lambda x: (x=='Unfortunately, your roster will have too many players after this transaction.').sum()).reset_index(name='No Space Count')
+manager_player_roster = adds_df.query("notes == 'Unfortunately, your roster will have too many players after this transaction.'").groupby(['Manager','Name','Position','Team','type','week']).agg(NoSpaceCount=('waiver_bid', 'count'),NoSpaceMax=('waiver_bid', 'max')).reset_index()
 
 adds_dataframes = [manager_player_success,manager_player_fail, manager_player_fail_max,manager_player_roster]
 
@@ -275,13 +279,13 @@ adds_player = adds_df_combined.query("type == 'waiver'").groupby(['week','Name',
 
 
 
+adds_player = adds_player[adds_player['WinningBid'].notna()]
 adds_player = adds_player.sort_values(by='WinningBid',ascending=False)
 adds_player['Difference'] = adds_player['WinningBid'] - adds_player['LosingMax']
 
 
-
 ##bring in manager for top and second-highest bid
-adds_manager = adds_df[['Name','Manager','week','waiver_bid']]
+adds_manager = adds_df.query("notes !='Unfortunately, your roster will have too many players after this transaction.'")[['Name','Manager','week','waiver_bid']]
 
 adds_player = pd.merge(adds_player, adds_manager, left_on=['week','Name','WinningBid'], right_on=['week','Name','waiver_bid'],how='left').drop_duplicates().reset_index()
 adds_player = pd.merge(adds_player, adds_manager, left_on=['week','Name','LosingMax'], right_on=['week','Name','waiver_bid'],how='left').drop_duplicates().reset_index()
@@ -314,8 +318,18 @@ bids_runnerup = adds_player.groupby(['Runner-Up Manager']) \
 adds_player_summary = adds_player.groupby(['Name','Position','Team']) \
     .agg(Pickups=('Bids','count'),AvgBids=('Bids','mean'),MoneySpent=('WinningBid','sum'),AvgSpent=('WinningBid','mean')).reset_index()
 
+adds_player_summary = adds_player_summary.loc[adds_player_summary['Pickups']>1]
+adds_player_summary = adds_player_summary.sort_values(by = ['Pickups', 'AvgSpent'], ascending = [False, False], na_position = 'first')
 
-waiver_scatter = px.scatter(adds_player, x="WinningBid", y="Difference",size="Bids", color="Bids",hover_data="Name",title="Waiver Bids")\
+##multi-adds chart
+adds_player['Counter'] = adds_player.groupby(['Name'])['Name'].transform("cumcount")
+adds_player['Counter'] = adds_player['Counter']+1
+adds_player['Pickups'] = adds_player.groupby(['Name'])['Name'].transform("count")
+
+adds_player_chart = adds_player.loc[adds_player['Pickups']>1]
+
+
+waiver_scatter = px.scatter(adds_player, x="WinningBid", y="Difference",size="Bids", color="Bids",hover_data=["Name","Winning Manager","Runner-Up Manager"],title="Waiver Bids")\
     .add_shape(type="line",x0=4, y0=0, x1=max(adds_player['WinningBid']), y1=max(adds_player['Difference']),line=dict(color="MediumPurple",width=4,dash="dot"))
 
 ##player tree map
@@ -326,11 +340,34 @@ player_tree = px.treemap(adds_player, path=['Position', 'Name'], values='Winning
 dropped_df = pd.merge(result, player_df, left_on='drops', right_on='player_id')
 dropped_df['Name'] = dropped_df['first_name'] + ' ' + dropped_df['last_name']
 eliminated_df = dropped_df.loc[dropped_df['type'] == 'commissioner']
-released_df = dropped_df.loc[(dropped_df['type'].isin(['waiver','free agent'])) & (dropped_df['status'] =='complete')]
+released_df = dropped_df.loc[(dropped_df['type'].isin(['waiver','free_agent'])) & (dropped_df['status'] =='complete')]
 
 eliminated_summary = eliminated_df.groupby(['Name','Position','Team'])['leg'].count().sort_values(ascending=False).reset_index(name='Times Eliminated')
 released_summary = released_df.groupby(['Name','Position','Team'])['leg'].count().sort_values(ascending=False).reset_index(name='Times Dropped')
 
+########## manager adds table
+
+manager_waivers_df = transactions_df.query("type == 'waiver'").groupby(['Manager']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
+manager_freeagents_df = transactions_df.query("type == 'free_agent'").groupby(['Manager'])['Manager'].count().reset_index(name="Free Agent Adds")
+manager_losing_df = adds_df_combined.groupby(['Manager']).agg(LosingBids=('Losing Bids', 'count'),LosingBids2=('Losing Bids', 'sum'),NoSpaceBids=('NoSpaceCount', 'count'),NoSpaceBids2=('NoSpaceCount', 'sum'),\
+                            LosingSum=('Max Losing Bid', 'sum'),SpaceSum=('NoSpaceMax', 'sum')).reset_index()
+manager_weeks_df = week_manager_df.loc[week_manager_df['Week']== week_manager_df['Week'].max()]
+manager_weeks_df = manager_weeks_df[['Manager','Weeks_Alive']]
+                                     
+
+adds_dataframes2 = [manager_waivers_df,manager_freeagents_df, manager_losing_df,manager_weeks_df]
+
+
+manager_overall_df = reduce(lambda df1,df2: pd.merge(df1,df2,on=['Manager'],how='outer'), adds_dataframes2)
+
+manager_overall_df['Average Bids'] = manager_overall_df.fillna(0)['WinningBids']/manager_overall_df['Weeks_Alive']
+manager_overall_df['Average Spent'] = manager_overall_df.fillna(0)['MoneySpent']/manager_overall_df['Weeks_Alive']
+manager_overall_df['Total Activity'] = manager_overall_df.fillna(0)['LosingBids2']+manager_overall_df.fillna(0)['NoSpaceBids2']+manager_overall_df.fillna(0)['WinningBids']+manager_overall_df.fillna(0)['Free Agent Adds']
+manager_overall_df['Total Money Bid'] = manager_overall_df.fillna(0)['LosingSum']+manager_overall_df.fillna(0)['SpaceSum']+manager_overall_df.fillna(0)['MoneySpent']
+manager_overall_df['Success Rate'] = manager_overall_df['WinningBids']/(manager_overall_df.fillna(0)['LosingBids']+manager_overall_df.fillna(0)['WinningBids'])
+
+manager_overall_df = manager_overall_df[['Manager','Weeks_Alive','WinningBids','Average Bids','MoneySpent','Average Spent','MaxPlayer','MedianPlayer','LosingBids',\
+                                         'Success Rate','Free Agent Adds','NoSpaceBids','Total Activity','Total Money Bid']].sort_values(by='WinningBids',ascending=False)
 
 #####power rankings
 
@@ -389,28 +426,19 @@ released_tie_text = released_summary.loc[released_summary['Times Dropped'] == re
 
 
 ##################notes
-#probably dont need to go with a bump chart because I can just plot ranks in plotly...moving average is the only one that makes sense
-#scatterplots of acquisitions and money spent by manager/Position/week is probaby not interesting enough to plot
 
-###from last years report:
-##would love to do a area bump chart for remaining budget. it just looks better than lines
-##for manager table, add total acquisitions, weeks alive, average money spent per week, avg acq count per week, and max spent in a week
-##do I care about max player price by Position per week? probably not
-##add avg spent by Position/manager/week to charts on the waivers tab
-##for the player table, add count of times picked up on waviers, max spent, avg spent
-
-#can I find a place for a Race Chart?
-#what about a ridgeplot?
-#general note - should I add a player's team to some of these tables?
 #some players are slipping through the cracks on waiver summary charts
-#it would be really cool to compare waiver price vs rest of season point totals for individual players - best values
-#how about a scatterplot that shows points scored vs money spent cumulatively? idk
-# can I do anything with possible points? Who actually should have lost each week?
 # make a chart for multi-waiver players that compares their original price to subsequent prices; can also do this for number of bids"
 # call out the most weekly wins, the most second places, the closest gaps between losing and surviging, the average and median gap ahead of last place, the most easy wins(at least x points ahead of last)")
-# can I do something where I look at money spent on guys that were eventually dropped? Not for eliminated teams, but waiver/free agent moves where you drop a guy you spent big on.")
 # Show a chart with average and median gap for winning and losing bids...is that even interesting?
 # show table of bids by manager - who has bid the most, who has won the most, lost the most, who has been most active (multiple bids for same player etc); who has laid the most money out, regardless of win/loss
+
+#####analyses that require some research
+#can I find a place for a Race Chart?
+#what about a ridgeplot?
+#can I do anything with possible points? Who actually should have lost each week?
+#it would be really cool to compare waiver price vs rest of season point totals for individual players - best values
+# can I do something where I look at money spent on guys that were eventually dropped? Not for eliminated teams, but waiver/free agent moves where you drop a guy you spent big on.")
 
 
 ############################################################################################################
@@ -464,6 +492,17 @@ with tab2:
    
 with tab3:
    st.header("Players")
+   st.write("The tree chart below shows the top acquisitions by position.") #Call out the top players for each, or maybe add a table below.
+   st.plotly_chart(player_tree,use_container_width=True) 
+   st.write("This table shows all waiver claims so far this season.") ##maybe add free agent adds eventually
+   st.dataframe(adds_player, hide_index=True) ## sort options: by difference to find closest and furthest...do callouts (wides and narrowest bid gaps)
+   st.write("The chart and table below should the players that got picked up from waivers multiple times.")
+   line = st.radio("Choose Metric:", ['Bids','WinningBid'])
+   multi_waiver_chart = px.line(adds_player_chart, x="Counter", y=line,markers=True, color="Name").update_layout(title="Manager "+line+" by Week")
+   st.plotly_chart(multi_waiver_chart, theme=None,use_container_width=True)
+   st.dataframe(adds_player_summary,hide_index=True) ##add total bids and number of free agent pickups
+   st.write("This scatterplot looks like how close the waiver contests were. Dots below the line are closely-contested waivers.")
+   st.plotly_chart(waiver_scatter,use_container_width=True)
    if eliminated_tie_text>1:
     st.write("{count} players have found themselves on the last place team {number} times. Maybe they were the problem?"\
          .format(count=eliminated_tie_text,number=eliminated_count_text))
@@ -479,14 +518,11 @@ with tab3:
          .format(player=released_most_text,number=released_count_text))
 
    st.dataframe(released_summary.style, hide_index=True) ##filter for more than one release eventually...for now it's ok to have all
-   st.write("The tree chart below shows the top acquisitions by position.") #Call out the top players for each, or maybe add a table below.
-   st.plotly_chart(player_tree,use_container_width=True) 
-   st.dataframe(adds_player.style, hide_index=True) ## sort options: by difference to find closest and furthest...do callouts (wides and narrowest bid gaps)
-   st.dataframe(adds_player_summary.style,hide_index=True)
-   st.plotly_chart(waiver_scatter,use_container_width=True)
 
 with tab4:
    st.header("Managers")
+   st.write("summary of manager stuff")
+   st.dataframe(manager_overall_df, hide_index=True) #the only other thing I could add here is highest week of money spending; also, its huge - maybe split into two tables
    bar = st.radio("Choose Metric:", ['AvgWinGap','MedianWinGap','MaxWinGap','MinWinGap']) ##where does this go?
    test2_chart = px.bar(bids_winning, x="Winning Manager", y=bar,text_auto='.2s').update_layout(title=bar+" by Manager",barmode='stack', xaxis={'categoryorder':'total descending'})
    st.plotly_chart(test2_chart, theme=None,use_container_width=True)   
@@ -498,13 +534,12 @@ with tab5:
    st.dataframe(rosters.style, hide_index=True)
    st.write(all_matchups)
    st.write("waivers")
-   st.dataframe(week_overall_df.style, hide_index=True)
-   st.dataframe(position_overall_df.style, hide_index=True)
-   st.dataframe(manager_overall_df.style, hide_index=True)
-   st.dataframe(week_manager_df.style, hide_index=True)
-   st.dataframe(week_position_df.style, hide_index=True)
-   st.dataframe(manager_position_df.style, hide_index=True)
+   st.dataframe(week_overall_df, hide_index=True)
+   st.dataframe(position_overall_df, hide_index=True)
+   st.dataframe(week_manager_df, hide_index=True)
+   st.dataframe(week_position_df, hide_index=True)
+   st.dataframe(manager_position_df, hide_index=True)
    st.write("adds")
-   st.dataframe(transactions_df.style, hide_index=True)
-   st.dataframe(adds_df.style, hide_index=True)
-   st.dataframe(adds_df_combined.style, hide_index=True)
+   st.dataframe(transactions_df, hide_index=True)
+   st.dataframe(adds_df, hide_index=True)
+   st.dataframe(adds_df_combined, hide_index=True)
