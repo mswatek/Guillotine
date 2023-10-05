@@ -17,6 +17,7 @@ from sleeper_wrapper import Players
 
 ####### setting some stuff up
 
+st.set_page_config(page_title="A Cut Above")
 st.title(":blue[A Cut Above]")
 
 leagueid = "992211821861576704"
@@ -373,7 +374,7 @@ cm_power = sns.light_palette("green", as_cmap=True)
 ################ add automated text here
 
 ##overall tab
-budget_left_text = min(week_budget_df['RemainingBudget'])
+budget_left_text = format(min(week_budget_df['RemainingBudget']),',.0f')
 alive_text = 19-currentweek
 
 lost_teams_text = week_manager_df.loc[(week_manager_df['Status'] == 'Out') & \
@@ -391,7 +392,7 @@ most_budget_text = week_manager_df.loc[(week_manager_df['Remaining Budget'] == w
                                        (week_manager_df['Week'] == week_manager_df['Week'].max()), 'Manager'].values[0]
 
 max_position_text = position_overall_df.loc[position_overall_df['MoneySpent'] == position_overall_df['MoneySpent'].max(), 'Position'].values[0]
-position_spent_text = position_overall_df.loc[position_overall_df['MoneySpent'] == position_overall_df['MoneySpent'].max(), 'MoneySpent'].values[0]
+position_spent_text = format(position_overall_df.loc[position_overall_df['MoneySpent'] == position_overall_df['MoneySpent'].max(), 'MoneySpent'].values[0],',.0f')
 position_bids_text = position_overall_df.loc[position_overall_df['MoneySpent'] == position_overall_df['MoneySpent'].max(), 'WinningBids'].values[0]
 
 ##players tab
@@ -404,7 +405,7 @@ released_count_text = released_summary.loc[released_summary['Times Released'] ==
 released_tie_text = released_summary.loc[released_summary['Times Released'] == released_summary['Times Released'].max(), 'Times Released'].shape[0]
 
 dropped_tie_text = dropped_summary.loc[dropped_summary['Total'] == dropped_summary['Total'].max(), 'Total'].shape[0]
-dropped_count_text = dropped_summary.loc[dropped_summary['Total'] == dropped_summary['Total'].max(), 'Total'].values[0]
+dropped_count_text = format(dropped_summary.loc[dropped_summary['Total'] == dropped_summary['Total'].max(), 'Total'].values[0],'.0f')
 dropped_most_text = dropped_summary.loc[dropped_summary['Total'] == dropped_summary['Total'].max(), 'Name'].values[0]
 
 
@@ -443,7 +444,7 @@ rate_text2 = manager_overall_df.loc[manager_overall_df['Success Rate'] == manage
 
 ##################notes
 
-#some players are slipping through the cracks on waiver summary charts; quentin johnston in the multi-add chart
+# some players are slipping through the cracks on waiver summary charts; quentin johnston in the multi-add chart
 # call out the most weekly wins, the most second places, the closest gaps between losing and surviging, the average and median gap ahead of last place, the most easy wins(at least x points ahead of last)")
 # Show a chart with average and median gap for winning and runner-up bids...the charts are made but not included currently
 # automate transactions date based on getting current date and using conditions set at the beginning
@@ -477,7 +478,7 @@ with tab1:
    st.header("Scoring")
    st.write("Here's how things have shaken out so far, with each score shaded relative to all scores over the full season. A big thanks to {losers} "\
             "for joining the league and letting us take their best players.".format(losers=lost_teams_text))
-   st.dataframe(all_matchups_wide.style.background_gradient(cmap=cm,axis=None)) ##need to figure out how to fit this all in without scrolling
+   st.dataframe(all_matchups_wide.style.format("{:.2f}").background_gradient(cmap=cm,axis=None).highlight_null('white')) ##need to figure out how to fit this all in without scrolling
    if most_points_text == most_rpoints_text:
     st.write("Below are charts showing points by week, rolling average, and cumulative. {mostpoints} has scored the most points so far and currently has the highest 3-week rolling average!"\
              .format(mostpoints=most_points_text))
@@ -535,12 +536,14 @@ with tab3:
 with tab4:
    st.header("Power Rankings")
    st.write("To advance in this league, your team merely needs to be 'good enough'. But some teams have been scoring a ton of points each week and still have a healthy budget. ",\
-    "Combining the remaining budget and 3-week scoring average, {top} is atop the power rankings while {bottom} as at the bottom."\
+    "Combining the remaining budget and 3-week scoring average, {top} is atop the power rankings while {bottom} is at the bottom."\
         .format(top=pr_top,bottom=pr_bottom))
-   st.dataframe(power_rankings.style.background_gradient(cmap=cm_power),hide_index=True)
+   st.dataframe(power_rankings.style.format({'3-Week Rolling Avg': "{:.1f}",'Power Ranking': "{:.3f}",'Remaining Budget': "{:.0f}"}).\
+                background_gradient(cmap=cm_power),hide_index=True,use_container_width=True)
    st.divider()
    st.header("Waivers")
    st.write("The table below summarizes how every manager has done on waivers. {bid} has won the most bids, {money} has spent the most money, "\
     "{rate} has highest waiver success rate, and {rate2} has the lowest. {active} has been the most active on waivers, when including back-up bids that didn't get processed."\
         .format(bid=bid_text,money=money_text,rate=rate_text,rate2=rate_text2,active=active_text))
    st.dataframe(manager_overall_df, hide_index=True) #the only other thing I could add here is highest week of money spending; also, its huge - maybe split into two tables
+
