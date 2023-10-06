@@ -139,7 +139,13 @@ all_matchups["Rolling Rank"] = all_matchups.groupby("Week")["3-Week Rolling Avg"
 
 weekly_points = px.line(all_matchups, x="Week", y="Points", color='Manager',title="Points by Week")
 weekly_points_cumu = px.line(all_matchups, x="Week", y="Cumulative Points", color='Manager',title="Cumulative Points by Week")
-weekly_dist = px.box(all_matchups, x="Week", y="Points",points="all",title="Weekly Distribution") #px.strip take out boxes
+
+if all_matchups.loc[(all_matchups['Points'] == all_matchups['Points'].max()) & (all_matchups['Week'] == currentweek), 'Manager'].shape[0] ==0:  
+    all_matchups['Week'] = all_matchups['Week'].astype(int)
+    all_matchups_box = all_matchups.loc[(all_matchups['Week']< currentweek)]
+else:
+    all_matchups_box = all_matchups
+weekly_dist = px.box(all_matchups_box, x="Week", y="Points",points="all",title="Weekly Distribution") #px.strip take out boxes
 
 #####waterfall table
 
@@ -398,13 +404,10 @@ manager_overall_df = manager_overall_df[['Manager','Weeks_Alive','WinningBids','
 
 
 if week_manager_df.loc[(week_manager_df['Points'] == week_manager_df['Points'].max()) & (week_manager_df['Week'] == currentweek), 'Manager'].shape[0] ==0:
-    power_rankings = week_manager_df.sort_values(by=['Manager','Week'])
-    power_rankings[['3-Week Rolling Avg','Remaining Budget']] = power_rankings[['3-Week Rolling Avg','Remaining Budget']].fillna(method="ffill")
-    power_rankings = power_rankings.loc[(power_rankings['Week']== currentweek) & (power_rankings['Status']=='Alive')]
+    power_rankings = week_manager_df.loc[(week_manager_df['Week']== currentweek-1) & (week_manager_df['Status']=='Alive')]
 
 else:
     power_rankings = week_manager_df.loc[(week_manager_df['Week']== currentweek) & (week_manager_df['Status']=='Alive')]
-
 
 
 power_rankings['rolling_z'] = (power_rankings['3-Week Rolling Avg'] - power_rankings['3-Week Rolling Avg'].mean())/power_rankings['3-Week Rolling Avg'].std(ddof=0)
@@ -514,6 +517,8 @@ rate_text2 = manager_overall_df.loc[manager_overall_df['Success Rate'] == manage
 # table at top mapping manager to team name
 # currently it doesnt register until everyone has points...could change?
 # weekly manager budget chart seems offset by a week?
+# add moneyspent label to tree map
+# some tables could use filtering options
 
 #####analyses that require some research
 #eventually I'd like to find a better table format to allow for filtering by manager etc
