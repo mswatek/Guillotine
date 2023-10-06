@@ -102,15 +102,19 @@ player_df['Team'] = player_df['Team'].astype('string').str.replace('NFLTeam.', '
 ############################################# matchups
 
 all_matchups1=pd.DataFrame()
-for i in range(1,currentweek): #gotta automate!
+for i in range(1,currentweek+1): #gotta automate!
     data = league.get_matchups(i)
     data1 = pd.DataFrame(data)
     data1['Week'] = i
     frames = [all_matchups1,data1]
     all_matchups1= pd.concat(frames)
 
+
+
 all_matchups2 = pd.merge(all_matchups1, users_df, left_on='roster_id', right_on='roster_id')
 all_matchups = pd.merge(df, all_matchups2, on=['Manager','Week'],how='left')
+
+
 
 all_matchups['Teams_Alive'] = 19-all_matchups['Week']
 all_matchups["WeekRank"] = all_matchups.groupby("Week")["points"].rank(method="dense", ascending=False)
@@ -121,6 +125,8 @@ all_matchups['Status'] = all_matchups['Status'].replace("In Play", method="ffill
 
 all_matchups['players_points'] = all_matchups['players_points'].astype('string')
 all_matchups['Points'] = np.where((all_matchups['points'] == 0) & (all_matchups['Status'].isin(['Out','Eliminated'])), [None], all_matchups['points'])
+
+
 all_matchups = all_matchups[["Week","Manager","Points","Status"]]
 all_matchups['Week'] = all_matchups['Week'].astype('string')
 all_matchups['Points'] = all_matchups['Points'].astype('string').astype('float')
@@ -156,6 +162,7 @@ if all_matchups.loc[(all_matchups['Points'] == all_matchups['Points'].max()) & (
 
 else:
     all_matchups1 = all_matchups.loc[(all_matchups['Week']<= currentweek)]
+
 
 all_matchups_wide = all_matchups1[["Week","Manager","Points"]]
 all_matchups_wide = all_matchups_wide.pivot(index='Week', columns='Manager', values='Points')
@@ -505,7 +512,7 @@ rate_text2 = manager_overall_df.loc[manager_overall_df['Success Rate'] == manage
 # automate transactions date based on getting current date and using conditions set at the beginning
 # eliminated players that haven't gotten picked back up
 # table at top mapping manager to team name
-# might have to do conditional charts based on day of the week...test this out
+# currently it doesnt register until everyone has points...could change?
 # weekly manager budget chart seems offset by a week?
 
 #####analyses that require some research
@@ -602,3 +609,4 @@ with tab4:
     "{rate} has highest waiver success rate, and {rate2} has the lowest. {active} has been the most active on waivers, when including back-up bids that didn't get processed."\
         .format(bid=bid_text,money=money_text,rate=rate_text,rate2=rate_text2,active=active_text))
    st.dataframe(manager_overall_df, hide_index=True) #the only other thing I could add here is highest week of money spending; also, its huge - maybe split into two tables
+
