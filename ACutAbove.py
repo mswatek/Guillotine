@@ -48,6 +48,7 @@ elif now > '2023-09-18': currentweek=3
 elif now > '2023-09-11': currentweek=2
 else: currentweek=1
 
+managers_alive = 19-currentweek
 
 leagueid = "992211821861576704"
 
@@ -137,23 +138,26 @@ all_matchups['3-Week Rolling Avg'] = np.where(all_matchups['Week'] == '1',all_ma
         np.where(all_matchups['Week']=='2',all_matchups['2-Week Rolling Avg'],all_matchups['3-Week Rolling Avg']))
 all_matchups["Rolling Rank"] = all_matchups.groupby("Week")["3-Week Rolling Avg"].rank(method="dense", ascending=False)
 
+all_matchups['Week'] = all_matchups['Week'].astype(int)
+
 weekly_points = px.line(all_matchups, x="Week", y="Points", color='Manager',title="Points by Week")
 weekly_points_cumu = px.line(all_matchups, x="Week", y="Cumulative Points", color='Manager',title="Cumulative Points by Week")
 
-if all_matchups.loc[(all_matchups['Points'] == all_matchups['Points'].max()) & (all_matchups['Week'] == currentweek), 'Manager'].shape[0] ==0:  
-    all_matchups['Week'] = all_matchups['Week'].astype(int)
-    all_matchups_box = all_matchups.loc[(all_matchups['Week']< currentweek)]
+
+
+if all_matchups.loc[(all_matchups['Points'] >0) & (all_matchups['Week'] == currentweek), 'Manager'].shape[0] == managers_alive:  
+    all_matchups = all_matchups
 else:
-    all_matchups_box = all_matchups
+    all_matchups = all_matchups.loc[(all_matchups['Week']< currentweek)]
+
+all_matchups_box = all_matchups
+
 weekly_dist = px.box(all_matchups_box, x="Week", y="Points",points="all",title="Weekly Distribution") #px.strip take out boxes
+
 
 #####waterfall table
 
-if all_matchups.loc[(all_matchups['Points'] == all_matchups['Points'].max()) & (all_matchups['Week'] == currentweek), 'Manager'].shape[0] ==0:  
-    all_matchups['Week'] = all_matchups['Week'].astype(int)
-    order_df = all_matchups.loc[(all_matchups['Week']< currentweek)]
-else:
-    order_df = all_matchups
+order_df = all_matchups
 
 order_df['outorder'] = np.where(order_df['Status'].isin(['Out','Eliminated']),1,0)
 order_df['outorder2'] = order_df.groupby(['Manager'])['outorder'].cumsum()
@@ -163,14 +167,7 @@ order_df = order_df.sort_values(by = ['outorder2', 'Cumulative Points'], ascendi
 manager_order = order_df['Manager'].tolist()
 
 
-if all_matchups.loc[(all_matchups['Points'] == all_matchups['Points'].max()) & (all_matchups['Week'] == currentweek), 'Manager'].shape[0] ==0:
-    all_matchups1 = all_matchups.loc[(all_matchups['Week']< currentweek)]
-
-else:
-    all_matchups1 = all_matchups.loc[(all_matchups['Week']<= currentweek)]
-
-
-all_matchups_wide = all_matchups1[["Week","Manager","Points"]]
+all_matchups_wide = all_matchups[["Week","Manager","Points"]]
 all_matchups_wide = all_matchups_wide.pivot(index='Week', columns='Manager', values='Points')
 
 all_matchups_wide = all_matchups_wide.reindex(columns=manager_order)
@@ -403,11 +400,11 @@ manager_overall_df = manager_overall_df[['Manager','Weeks_Alive','WinningBids','
 #####power rankings
 
 
-if week_manager_df.loc[(week_manager_df['Points'] == week_manager_df['Points'].max()) & (week_manager_df['Week'] == currentweek), 'Manager'].shape[0] ==0:
-    power_rankings = week_manager_df.loc[(week_manager_df['Week']== currentweek-1) & (week_manager_df['Status']=='Alive')]
+if week_manager_df.loc[(week_manager_df['Points']>0) & (week_manager_df['Week'] == currentweek), 'Manager'].shape[0] ==managers_alive:
+    power_rankings = week_manager_df.loc[(week_manager_df['Week']== currentweek) & (week_manager_df['Status']=='Alive')]
 
 else:
-    power_rankings = week_manager_df.loc[(week_manager_df['Week']== currentweek) & (week_manager_df['Status']=='Alive')]
+    power_rankings = week_manager_df.loc[(week_manager_df['Week']== currentweek-1) & (week_manager_df['Status']=='Alive')]
 
 
 power_rankings['rolling_z'] = (power_rankings['3-Week Rolling Avg'] - power_rankings['3-Week Rolling Avg'].mean())/power_rankings['3-Week Rolling Avg'].std(ddof=0)
@@ -424,16 +421,6 @@ power_rankings = power_rankings[['Manager','3-Week Rolling Avg','Remaining Budge
 
 #color palette options
 cm_power = sns.light_palette("green", as_cmap=True)
-
-################ set for current week
-
-if all_matchups.loc[(all_matchups['Points'] == all_matchups['Points'].max()) & (all_matchups['Week'] == currentweek), 'Manager'].shape[0] ==0:
-    all_matchups = all_matchups.loc[(all_matchups['Week']< currentweek)]
-
-else:
-    all_matchups = all_matchups.loc[(all_matchups['Week']<= currentweek)]
-
-
 
 
 ################ add automated text here
