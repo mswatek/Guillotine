@@ -119,13 +119,16 @@ all_matchups = pd.merge(df, all_matchups2, on=['Manager','Week'],how='left')
 
 all_matchups['Teams_Alive'] = 19-all_matchups['Week']
 all_matchups["WeekRank"] = all_matchups.groupby("Week")["points"].rank(method="dense", ascending=False)
+all_matchups['players_points'] = all_matchups['players_points'].astype('string')
 all_matchups['Status'] = np.where((all_matchups['WeekRank']==all_matchups['Teams_Alive']) & (all_matchups['Week']<currentweek) , "Eliminated",\
                                   np.where((all_matchups['WeekRank']>all_matchups['Teams_Alive']) & (all_matchups['Week']<currentweek), "Out", \
-                                           np.where(all_matchups['Week']==currentweek, "In Play","Alive")))
+                                           np.where((all_matchups['Week']==currentweek) & (all_matchups['players_points']=='{}'), "Out", \
+                                                np.where(all_matchups['Week']==currentweek, "In Play","Alive"))))
+
+
 all_matchups['Status'] = all_matchups['Status'].replace("In Play", method="ffill")
 
-all_matchups['players_points'] = all_matchups['players_points'].astype('string')
-all_matchups['Points'] = np.where((all_matchups['points'] == 0) & (all_matchups['Status'].isin(['Out','Eliminated'])), [None], all_matchups['points'])
+all_matchups['Points'] = np.where((all_matchups['points'] == 0) & (all_matchups['Status'].isin(['Out'])), [None], all_matchups['points'])
 
 
 all_matchups = all_matchups[["Week","Manager","Points","Status"]]
@@ -143,7 +146,7 @@ all_matchups['Week'] = all_matchups['Week'].astype(int)
 weekly_points = px.line(all_matchups, x="Week", y="Points", color='Manager',title="Points by Week")
 weekly_points_cumu = px.line(all_matchups, x="Week", y="Cumulative Points", color='Manager',title="Cumulative Points by Week")
 
-
+all_matchups_manager = all_matchups
 
 if all_matchups.loc[(all_matchups['Points'] >0) & (all_matchups['Week'] == currentweek), 'Manager'].shape[0] == managers_alive:  
     all_matchups = all_matchups
@@ -152,14 +155,14 @@ else:
 
 all_matchups_box = all_matchups
 
-weekly_dist = px.box(all_matchups_box, x="Week", y="Points",points="all",title="Weekly Distribution") #px.strip take out boxes
+weekly_dist = px.box(all_matchups_box, x="Week", y="Points",points="all",hover_data="Manager",title="Weekly Distribution") #px.strip take out boxes
 
 
 #####waterfall table
 
 order_df = all_matchups
 
-order_df['outorder'] = np.where(order_df['Status'].isin(['Out','Eliminated']),1,0)
+order_df['outorder'] = np.where(order_df['Status'].isin(['Out']),1,0)
 order_df['outorder2'] = order_df.groupby(['Manager'])['outorder'].cumsum()
 order_df = order_df.drop_duplicates(subset=['Manager'], keep='last')
 order_df = order_df.sort_values(by = ['outorder2', 'Cumulative Points'], ascending = [False, True], na_position = 'first')
@@ -241,7 +244,7 @@ added_df['Name'] = added_df['first_name'] + ' ' + added_df['last_name']
 transactions_df = added_df[['week','Manager','Name','Position','Team','type','status','waiver_bid','notes']].query("status == 'complete'")
 transactions_df['week'] = transactions_df['week'].astype(int)
 
-week_manager_df = pd.merge(df,all_matchups, on=['Week','Manager'],how='left')
+week_manager_df = pd.merge(df,all_matchups_manager, on=['Week','Manager'],how='left')
 trans_summary = transactions_df.query("type == 'waiver' & week != '1'").groupby(['week','Manager']).agg(WinningBids=('waiver_bid', 'count'),MoneySpent=('waiver_bid', 'sum'),MaxPlayer=('waiver_bid', 'max'),MedianPlayer=('waiver_bid', 'median')).reset_index()
 trans_summary['week'] = trans_summary['week'].astype(int)
 
@@ -251,7 +254,7 @@ week_manager_df['Week'] = week_manager_df['Week'].astype(int)
 
 week_manager_df['MoneySpent'] = np.where((week_manager_df['MoneySpent'].isnull()), 0, week_manager_df['MoneySpent'])
 week_manager_df['Cumulative Spend'] = week_manager_df.groupby(['Manager'])['MoneySpent'].cumsum()
-week_manager_df['Remaining Budget'] = np.where((week_manager_df['Status'].isin(['Out','Eliminated'])), 0, (1000-week_manager_df['Cumulative Spend']))
+week_manager_df['Remaining Budget'] = np.where((week_manager_df['Status'].isin(['Out'])), 0, (1000-week_manager_df['Cumulative Spend']))
 week_manager_df['Weeks_Alive'] = week_manager_df.groupby(['Manager'])['Points'].transform("count")
 week_manager_df['Total Budget'] = week_manager_df.groupby(['Week'])['Remaining Budget'].transform("sum")
 week_manager_df['Budget Percent'] = week_manager_df['Remaining Budget']/week_manager_df['Total Budget']
@@ -360,6 +363,8 @@ waiver_scatter = px.scatter(adds_player, x="WinningBid", y="Difference",size="Bi
 player_tree = px.treemap(adds_player, path=['Position', 'Name'], values='WinningBid',
                   color='Position', hover_data=['Name'],title="Tree Map of Waivers by Position")
 
+player_tree.data[0].textinfo = 'label+text+value'
+
 ############# drops
 dropped_df = pd.merge(result, player_df, left_on='drops', right_on='player_id')
 dropped_df['Name'] = dropped_df['first_name'] + ' ' + dropped_df['last_name']
@@ -409,7 +414,7 @@ else:
 
 power_rankings['rolling_z'] = (power_rankings['3-Week Rolling Avg'] - power_rankings['3-Week Rolling Avg'].mean())/power_rankings['3-Week Rolling Avg'].std(ddof=0)
 power_rankings['budget_z'] = (power_rankings['Remaining Budget'] - power_rankings['Remaining Budget'].mean())/power_rankings['Remaining Budget'].std(ddof=0)
-power_rankings['Power Ranking'] = power_rankings['rolling_z'] + power_rankings['budget_z']
+power_rankings['Power Ranking'] = power_rankings['rolling_z']*0.6777 + power_rankings['budget_z']*0.333
 #power_rankings["Power Ranking"] = power_rankings["Rank Sum"].rank(method="dense", ascending=False) #maybe keep this out for now?
 
 
@@ -503,9 +508,9 @@ rate_text2 = manager_overall_df.loc[manager_overall_df['Success Rate'] == manage
 # eliminated players that haven't gotten picked back up
 # table at top mapping manager to team name
 # currently it doesnt register until everyone has points...could change?
-# weekly manager budget chart seems offset by a week?
-# add moneyspent label to tree map
+# some chart axes show fractions...need to fix format
 # some tables could use filtering options
+
 
 #####analyses that require some research
 #eventually I'd like to find a better table format to allow for filtering by manager etc
@@ -601,4 +606,3 @@ with tab4:
     "{rate} has highest waiver success rate, and {rate2} has the lowest. {active} has been the most active on waivers, when including back-up bids that didn't get processed."\
         .format(bid=bid_text,money=money_text,rate=rate_text,rate2=rate_text2,active=active_text))
    st.dataframe(manager_overall_df, hide_index=True) #the only other thing I could add here is highest week of money spending; also, its huge - maybe split into two tables
-
