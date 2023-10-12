@@ -431,6 +431,7 @@ cm_power = sns.light_palette("green", as_cmap=True)
 ################ add automated text here
 
 ##overall tab
+
 budget_left_text = format(min(week_budget_df['RemainingBudget']),',.0f')
 alive_text = 19-currentweek
 
@@ -444,9 +445,10 @@ most_rpoints_text = all_matchups.loc[(all_matchups['Rolling Rank'] == all_matchu
                                      (all_matchups['Week'] == all_matchups['Week'].max()),'Manager'].values[0]
 
 
+
 ##waiver tab
-most_budget_text = week_manager_df.loc[(week_manager_df['Remaining Budget'] == week_manager_df['Remaining Budget'].max()) & \
-                                       (week_manager_df['Week'] == week_manager_df['Week'].max()), 'Manager'].values[0]
+week_manager_latest = week_manager_df.loc[week_manager_df['Week'] == currentweek]
+most_budget_text = week_manager_latest.loc[(week_manager_latest['Remaining Budget'] == week_manager_latest['Remaining Budget'].max()), 'Manager'].values[0]
 
 max_position_text = position_overall_df.loc[position_overall_df['MoneySpent'] == position_overall_df['MoneySpent'].max(), 'Position'].values[0]
 position_spent_text = format(position_overall_df.loc[position_overall_df['MoneySpent'] == position_overall_df['MoneySpent'].max(), 'MoneySpent'].values[0],',.0f')
@@ -606,3 +608,4 @@ with tab4:
     "{rate} has highest waiver success rate, and {rate2} has the lowest. {active} has been the most active on waivers, when including back-up bids that didn't get processed."\
         .format(bid=bid_text,money=money_text,rate=rate_text,rate2=rate_text2,active=active_text))
    st.dataframe(manager_overall_df, hide_index=True) #the only other thing I could add here is highest week of money spending; also, its huge - maybe split into two tables
+
