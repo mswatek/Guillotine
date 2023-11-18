@@ -462,7 +462,7 @@ most_rpoints_text = all_matchups.loc[(all_matchups['Rolling Rank'] == all_matchu
 ##figure out how to automate this at start of season eventually
 sep_top = points_leaders_sep.loc[points_leaders_sep['September'] == points_leaders_sep['September'].max(), 'Manager'].values[0]
 oct_top = points_leaders_oct.loc[points_leaders_oct['October'] == points_leaders_oct['October'].max(), 'Manager'].values[0]
-oct_top_points = points_leaders_oct.loc[points_leaders_oct['October'] == points_leaders_oct['October'].max(), 'October'].values[0]
+nov_top = points_leaders_nov.loc[points_leaders_nov['November'] == points_leaders_nov['November'].max(), 'Manager'].values[0]
 
 ##waiver tab
 week_manager_latest = week_manager_df.loc[week_manager_df['Week'] == currentweek]
@@ -562,11 +562,12 @@ with tab1:
    st.dataframe(all_matchups_wide.style.format("{:.2f}").background_gradient(cmap=cm,axis=None).highlight_null('white')) ##need to figure out how to fit this all in without scrolling
    if most_points_text == most_rpoints_text:
     st.write("Below are charts showing points by week, rolling average, and cumulative. {mostpoints} has scored the most points so far and currently has the highest 3-week rolling average!"\
-             .format(mostpoints=most_points_text))
+             " {sep} has taken the prize for most points in September, and {oct} scored the most in October. {nov} is currently leading the way in November."\
+                .format(mostpoints=most_points_text,sep=sep_top,oct=oct_top,nov=nov_top))
    else:
     st.write("Below are charts showing points by week, rolling average, and cumulative. {mostpoints} has scored the most points so far, while {rolling} has the best 3-week rolling average."\
-             " {sep} has taken the prize for most points in September, and {oct} is in the lead for the October winnings with {amt}."\
-                .format(mostpoints=most_points_text,rolling=most_rpoints_text,sep=sep_top,oct=oct_top,amt=oct_top_points))
+             " {sep} has taken the prize for most points in September, and {oct} scored the most in October {nov} is currently leading the way in November."\
+                .format(mostpoints=most_points_text,rolling=most_rpoints_text,sep=sep_top,oct=oct_top,nov=nov_top))
    line = st.radio("Choose Metric:", ['Points','3-Week Rolling Avg','Rolling Rank','Cumulative Points'])
    weekly_scoring_chart = px.line(all_matchups, x="Week", y=line, color="Manager",markers=True).update_layout(title="Manager "+line+" by Week")
    st.plotly_chart(weekly_scoring_chart, theme=None,use_container_width=True)
@@ -628,3 +629,4 @@ with tab4:
     "{rate} has highest waiver success rate, and {rate2} has the lowest. {active} has been the most active on waivers, when including back-up bids that didn't get processed."\
         .format(bid=bid_text,money=money_text,rate=rate_text,rate2=rate_text2,active=active_text))
    st.dataframe(manager_overall_df, hide_index=True) #the only other thing I could add here is highest week of money spending; also, its huge - maybe split into two tables
+
