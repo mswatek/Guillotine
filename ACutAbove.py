@@ -29,8 +29,7 @@ now = now.strftime('%Y-%m-%d')
 
 
 
-if  now > '2024-01-01': currentweek=18
-elif now > '2023-12-25': currentweek=17
+if   now > '2023-12-25': currentweek=17
 elif now > '2023-12-18': currentweek=16
 elif now > '2023-12-11': currentweek=15
 elif now > '2023-12-04': currentweek=14
@@ -116,7 +115,6 @@ all_matchups2 = pd.merge(all_matchups1, users_df, left_on='roster_id', right_on=
 all_matchups = pd.merge(df, all_matchups2, on=['Manager','Week'],how='left')
 
 
-
 all_matchups['Teams_Alive'] = 19-all_matchups['Week']
 all_matchups["WeekRank"] = all_matchups.groupby("Week")["points"].rank(method="dense", ascending=False)
 all_matchups['players_points'] = all_matchups['players_points'].astype('string')
@@ -196,7 +194,7 @@ result = all_trans
 
 result  = result.explode('adds')
 result  = result.explode('drops')
-result[['waiver_bid','seq','priority']] = result['settings'].apply(pd.Series)
+result[['seq','waiver_bid','priority']] = result['settings'].apply(pd.Series)
 
 
 result[['notes']] = result['metadata'].apply(pd.Series)
@@ -224,7 +222,6 @@ result['day_of_week'] = result['date2'].dt.day_name()
 
 conditions = [
     (result['date2'] < '2023-09-11'),
-    (result['date2'] > '2024-01-01') & (result['date2'] < '2024-01-08'),
     (result['date2'] > '2023-12-25'),
     (result['date2'] > '2023-12-18'),
     (result['date2'] > '2023-12-11'),
@@ -243,7 +240,7 @@ conditions = [
     (result['date2'] > '2023-09-11')
     ]
 
-values = [1,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2]
+values = [1,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2]
 
 result['week'] = np.select(conditions, values) #as defined above
 
@@ -468,6 +465,7 @@ nov_top = points_leaders_nov.loc[points_leaders_nov['November'] == points_leader
 
 ##waiver tab
 week_manager_latest = week_manager_df.loc[week_manager_df['Week'] == currentweek]
+
 most_budget_text = week_manager_latest.loc[(week_manager_latest['Remaining Budget'] == week_manager_latest['Remaining Budget'].max()), 'Manager'].values[0]
 
 max_position_text = position_overall_df.loc[position_overall_df['MoneySpent'] == position_overall_df['MoneySpent'].max(), 'Position'].values[0]
