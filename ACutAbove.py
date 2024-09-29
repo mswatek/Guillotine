@@ -181,6 +181,7 @@ def color_survived(val): # option 2
     color = 'red' if val<50 else 'yellow' if val<75 else 'green' if val>74 else 'white'
     return f'background-color: {color}'
 
+
 ############################################# transactions
 
 
@@ -223,7 +224,7 @@ result['day_of_week'] = result['date2'].dt.day_name()
 
 conditions = [
     (result['date2'] < '2023-09-11'),
-    (result['date2'] > '2024-01-01' & result['date2'] < '2024-01-08'),
+    (result['date2'] > '2024-01-01') & (result['date2'] < '2024-01-08'),
     (result['date2'] > '2023-12-25'),
     (result['date2'] > '2023-12-18'),
     (result['date2'] > '2023-12-11'),
@@ -245,6 +246,7 @@ conditions = [
 values = [1,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2]
 
 result['week'] = np.select(conditions, values) #as defined above
+
 
 added_df = pd.merge(result, player_df, left_on='adds', right_on='player_id')
 added_df['Name'] = added_df['first_name'] + ' ' + added_df['last_name']
