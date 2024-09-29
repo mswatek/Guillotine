@@ -223,7 +223,7 @@ result['day_of_week'] = result['date2'].dt.day_name()
 
 conditions = [
     (result['date2'] < '2023-09-11'),
-    (result['date2'] > '2024-01-01' and result['date2'] < '2024-01-08'),
+    (result['date2'] > '2024-01-01' & result['date2'] < '2024-01-08'),
     (result['date2'] > '2023-12-25'),
     (result['date2'] > '2023-12-18'),
     (result['date2'] > '2023-12-11'),
